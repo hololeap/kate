@@ -244,11 +244,11 @@ void KateFileTreePluginView::setupActions()
     aSaveAs->setToolTip(i18n("Save current document under new name"));
     aSaveAs->setIcon(QIcon::fromTheme(QStringLiteral("document-save-as")));
 
-    auto aOpenTerminal = actionCollection()->addAction(QStringLiteral("open_terminal_in_parent_dir"),
-                                                       this, SLOT(slotOpenTerminalInParentDir()));
-    aOpenTerminal->setText(i18nc("@action:intoolbar a button to open a terminal in the parent dir"
-                                 " of the selected file", "Open Terminal"));
-    aOpenTerminal->setToolTip(i18n("Open terminal in parent dir"));
+    auto aOpenTerminal = actionCollection()->addAction(QStringLiteral("open_terminal_in_containing_folder"),
+                                                       this, SLOT(slotOpenTerminalInContainingFolder()));
+    aOpenTerminal->setText(i18nc("@action:intoolbar a button to open a terminal in the folder containing"
+                                 "the currently selected file", "Open Terminal"));
+    aOpenTerminal->setToolTip(i18n("Open terminal in containing folder"));
     aOpenTerminal->setIcon(QIcon::fromTheme(QStringLiteral("utilities-terminal")));
 
     /**
@@ -456,7 +456,7 @@ void KateFileTreePluginView::slotDocumentSaveAs()
     }
 }
 
-void KateFileTreePluginView::slotOpenTerminalInParentDir() const
+void KateFileTreePluginView::slotOpenTerminalInContainingFolder() const
 {
     const auto index = m_fileTree->selectionModel()->currentIndex();
     const QUrl fileUrl(index.data(KateFileTreeModel::PathRole).toString());
