@@ -126,6 +126,7 @@ private Q_SLOTS:
     void slotDocumentsCreated(const QList<KTextEditor::Document *> &);
     void slotDocumentSave();
     void slotDocumentSaveAs();
+    void slotOpenTerminalInParentDir() const;
 };
 
 #endif // KATE_FILETREE_PLUGIN_H

@@ -18,14 +18,19 @@
 #include <KAboutData>
 #include <KActionCollection>
 #include <KConfigGroup>
+#include <KIO/StatJob>
+#include <KJobWidgets>
 #include <KLocalizedString>
 #include <KPluginFactory>
+#include <KProtocolInfo>
 #include <KToolBar>
+#include <KToolInvocation>
 #include <KXMLGUIFactory>
 #include <KXmlGuiWindow>
 
 #include <QAction>
 #include <QApplication>
+#include <QDir>
 #include <QLineEdit>
 #include <QStyle>
 #include <QTimer>
@@ -239,6 +244,13 @@ void KateFileTreePluginView::setupActions()
     aSaveAs->setToolTip(i18n("Save current document under new name"));
     aSaveAs->setIcon(QIcon::fromTheme(QStringLiteral("document-save-as")));
 
+    auto aOpenTerminal = actionCollection()->addAction(QStringLiteral("open_terminal_in_parent_dir"),
+                                                       this, SLOT(slotOpenTerminalInParentDir()));
+    aOpenTerminal->setText(i18nc("@action:intoolbar a button to open a terminal in the parent dir"
+                                 " of the selected file", "Open Terminal"));
+    aOpenTerminal->setToolTip(i18n("Open terminal in parent dir"));
+    aOpenTerminal->setIcon(QIcon::fromTheme(QStringLiteral("utilities-terminal")));
+
     /**
      * add new & open, if hosting application has it
      */
@@ -265,6 +277,7 @@ void KateFileTreePluginView::setupActions()
     m_toolbar->addSeparator();
     m_toolbar->addAction(aSave);
     m_toolbar->addAction(aSaveAs);
+    m_toolbar->addAction(aOpenTerminal);
 }
 
 KateFileTreeModel *KateFileTreePluginView::model()
@@ -441,6 +454,36 @@ void KateFileTreePluginView::slotDocumentSaveAs()
     if (auto view = m_mainWindow->activeView()) {
         view->document()->documentSaveAs();
     }
+}
+
+void KateFileTreePluginView::slotOpenTerminalInParentDir() const
+{
+    const auto index = m_fileTree->selectionModel()->currentIndex();
+    const QUrl fileUrl(index.data(KateFileTreeModel::PathRole).toString());
+
+    if (fileUrl.isLocalFile()) {
+        KToolInvocation::invokeTerminal(QString(), fileUrl.adjusted(QUrl::RemoveFilename).toLocalFile());
+        return;
+    }
+
+    // Not a local file, if the protocol Class is ":local", try stat'ing
+    if (KProtocolInfo::protocolClass(fileUrl.scheme()) == QLatin1String(":local")) {
+        KIO::StatJob *job = KIO::mostLocalUrl(fileUrl);
+        KJobWidgets::setWindow(job, m_toolView);
+        connect(job, &KJob::result, this, [job]() {
+            QUrl statUrl;
+            if (!job->error()) {
+                statUrl = job->mostLocalUrl().adjusted(QUrl::RemoveFilename);
+            }
+
+            KToolInvocation::invokeTerminal(QString(), statUrl.isLocalFile() ? statUrl.toLocalFile() : QDir::homePath());
+        });
+
+        return;
+    }
+
+    // Nothing worked, just open a terminal with $HOME as workdir
+    KToolInvocation::invokeTerminal(QString(), QDir::homePath());
 }
 
 // END KateFileTreePluginView
