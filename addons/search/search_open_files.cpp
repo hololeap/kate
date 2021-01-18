@@ -121,14 +121,15 @@ int SearchOpenFiles::searchSingleLineRegExp(KTextEditor::Document *doc, const QR
         column = match.capturedStart();
 
 
-        while (column != -1 && !match.captured().isEmpty()) {
+        auto capturedMatch = match.captured();
+        while (column != -1 && !capturedMatch.isEmpty()) {
             int endColumn = column + match.capturedLength();
             int preContextStart = qMax(0, column-MatchModel::PreContextLen);
             const QString &lineStr = doc->line(line);
             QString preContext = lineStr.mid(preContextStart, column-preContextStart);
             QString postContext = lineStr.mid(endColumn, MatchModel::PostContextLen);
 
-            matches.push_back(KateSearchMatch{preContext, match.captured(), postContext, QString(),
+            matches.push_back(KateSearchMatch{preContext, capturedMatch, postContext, QString(),
                 KTextEditor::Range{line, column, line, column + match.capturedLength()}, true});
             match = regExp.match(doc->line(line), column + match.capturedLength());
             column = match.capturedStart();
