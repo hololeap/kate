@@ -14,6 +14,7 @@ target_sources(
     TargetModel.cpp
     UrlInserter.cpp
     SelectTargetView.cpp
+    buildoutputhighlighter.cpp
     plugin.qrc
 )
 

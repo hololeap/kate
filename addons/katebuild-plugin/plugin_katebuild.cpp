@@ -52,8 +52,10 @@
 #include <ktexteditor/markinterface.h>
 #include <ktexteditor/movinginterface.h>
 #include <ktexteditor_version.h>
+#include <ktexteditor/editor.h>
 
 #include "SelectTargetView.h"
+#include "buildoutputhighlighter.h"
 
 K_PLUGIN_FACTORY_WITH_JSON(KateBuildPluginFactory, "katebuildplugin.json", registerPlugin<KateBuildPlugin>();)
 
@@ -183,8 +185,29 @@ KateBuildView::KateBuildView(KTextEditor::Plugin *plugin, KTextEditor::MainWindo
 
     connect(m_buildUi.errTreeWidget, &QTreeWidget::itemClicked, this, &KateBuildView::slotErrorSelected);
 
+    auto bg = QColor::fromRgba(KTextEditor::Editor::instance()->theme().editorColor(KSyntaxHighlighting::Theme::EditorColorRole::BackgroundColor));
+    auto fg = QColor::fromRgba(KTextEditor::Editor::instance()->theme().textColor(KSyntaxHighlighting::Theme::TextStyle::Normal));
     m_buildUi.plainTextEdit->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
     m_buildUi.plainTextEdit->setReadOnly(true);
+    auto pal = m_buildUi.plainTextEdit->palette();
+    pal.setColor(QPalette::Base, bg);
+    pal.setColor(QPalette::Text, fg);
+    m_buildUi.plainTextEdit->setPalette(pal);
+    buildHl = new BuildOutputHighlighter(m_buildUi.plainTextEdit->document());
+
+    connect(KTextEditor::Editor::instance(), &KTextEditor::Editor::configChanged, this, [this](KTextEditor::Editor* e){
+        if (!e)
+            return;
+        buildHl->updateColors(e);
+        auto theme = e->theme();
+        auto bg = QColor::fromRgba(theme.editorColor(KSyntaxHighlighting::Theme::EditorColorRole::BackgroundColor));
+        auto fg = QColor::fromRgba(theme.textColor(KSyntaxHighlighting::Theme::TextStyle::Normal));
+        auto pal = m_buildUi.plainTextEdit->palette();
+        pal.setColor(QPalette::Base, bg);
+        pal.setColor(QPalette::Text, fg);
+        m_buildUi.plainTextEdit->setPalette(pal);
+    });
+
     slotDisplayMode(FullOutput);
 
     connect(m_buildUi.displayModeSlider, &QSlider::valueChanged, this, &KateBuildView::slotDisplayMode);
@@ -1000,6 +1023,7 @@ void KateBuildView::slotReadReadyStdOut()
         if (ninjaOutput) {
             line = line.mid(NinjaPrefix.length());
         }
+
         m_buildUi.plainTextEdit->appendPlainText(line);
         // qDebug() << line;
 
